@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import os.path as path
+import subprocess
+
+PRESET="Devices/Apple 2160p60 4K HEVC Surround"
+SUFFIX="m4v"
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--device", help="DVD device", required=True)
+    ap.add_argument("--series", help="series title", required=True)
+    ap.add_argument("--year", help="series year", required=True)
+    ap.add_argument("--season", help="season number", type=int, required=True)
+    ap.add_argument("--episode-start", metavar="N", help="episode number of first DVD title", type=int, required=True)
+    ap.add_argument("--titles", metavar="N", help="number of titles", type=int, required=True)
+    ap.add_argument("--emby-path", help="path to Emby volume", required=True)
+    ap.add_argument("--commentary", metavar="TRACK", help="rip commentary track", type=int)
+
+    args = ap.parse_args()
+    for i in range(0, args.titles):
+        output_dir = path.join(args.emby_path, "{} ({})".format(args.series, args.year), "Season {}".format(args.season))
+        try:
+            os.mkdir(output_dir)
+        except FileExistsError:
+            pass
+        filename = "{} S{:02}E{:02}.{}".format(args.series, args.season, args.episode_start + i, SUFFIX)
+        handbrake_args = [
+            "HandBrakeCLI",
+            "--input", args.device,
+            "--title", str(i + 1),
+            "--crop", "0:0:8:6",
+            "--preset", PRESET,
+            "--output", path.join(output_dir, filename)
+        ]
+        if args.commentary is not None:
+            handbrake_args += ["--audio", "1,{}".format(args.commentary), "--aname", "English,Commentary"]
+
+        subprocess.run(handbrake_args)
+
+
+if __name__ == "__main__":
+    main()
