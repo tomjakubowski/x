@@ -1,0 +1,7 @@
+#!/bin/bash
+
+pacman -S \
+  handbrake \
+  lsdvd \
+  python3 \
+  ;
