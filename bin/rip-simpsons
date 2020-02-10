@@ -107,6 +107,16 @@ def main():
         filename = "{} S{:02}E{:02}.{}".format(
             SERIES, ripping_plan.season, item.episode_number, SUFFIX
         )
+        output_path = path.join(output_dir, filename)
+        if path.exists(output_path):
+            response = input(
+                "{} exists.  Type OVERWRITE to overwrite it, or anything else to skip. ".format(
+                    output_path
+                )
+            )
+            if response != "OVERWRITE":
+                continue
+
         handbrake_args: List[str] = [
             "HandBrakeCLI",
             "--input",
@@ -118,7 +128,7 @@ def main():
             "--preset",
             PRESET,
             "--output",
-            path.join(output_dir, filename),
+            output_path,
         ]
         if args.commentary is not None:
             handbrake_args += [
