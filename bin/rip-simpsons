@@ -51,10 +51,12 @@ def main():
         required=True,
     )
     ap.add_argument(
-        "--titles", metavar="N", help="number of titles", type=int, required=False
+        "--titles", metavar="N", help="number of titles", type=int, required=False,
+        default=-1
     )
     ap.add_argument(
-        "--skip-titles", metavar="N", help="number of titles to skip", type=int, required=False
+        "--skip-titles", metavar="N", help="number of titles to skip", type=int, required=False,
+        default=0,
     )
     ap.add_argument("--emby-path", help="path to Emby volume", required=True)
     ap.add_argument(
@@ -63,28 +65,25 @@ def main():
 
     args = ap.parse_args()
 
-    if args.titles is None:
-        # What Handbrake calls 'titles', lsdvd calls 'tracks'.  An lsdvd
-        # 'title' roughly corresponds to a disc.
-        xml = subprocess.check_output(["lsdvd", args.device, "-Ox"])
-        root = ElementTree.fromstring(xml)
-        titles = []
-        tracks = [
-            # lsdvd track "ix" is 1-based, like Handbrake title indices
-            {
-                "ix": int(track.find("ix").text),
-                "length": float(track.find("length").text),
-            }
-            for track in root.iter("track")
-        ]
+    # What Handbrake calls 'titles', lsdvd calls 'tracks'.  An lsdvd
+    # 'title' roughly corresponds to a disc.
+    xml = subprocess.check_output(["lsdvd", args.device, "-Ox"])
+    root = ElementTree.fromstring(xml)
+    titles = []
+    tracks = [
+        # lsdvd track "ix" is 1-based, like Handbrake title indices
+        {
+            "ix": int(track.find("ix").text),
+            "length": float(track.find("length").text),
+        }
+        for track in root.iter("track")
+    ]
 
-        for track in tracks:
-            MIN_EPISODE_LENGTH = 1140.0
-            if track["length"] < MIN_EPISODE_LENGTH:
-                break
-            titles.append(track["ix"])
-    else:
-        titles = [idx for idx in range(1, args.titles + 1)]
+    for track in tracks:
+        MIN_EPISODE_LENGTH = 1140.0
+        if track["length"] < MIN_EPISODE_LENGTH:
+            break
+        titles.append(track["ix"])
 
     rippings = [
             Ripping(
@@ -94,8 +93,8 @@ def main():
             )
             for title in titles
         ]
-    if args.skip_titles is not None:
-        rippings = rippings[args.skip_titles:]
+    base, size = args.skip_titles, args.titles
+    rippings = rippings[base:base + size]
 
     ripping_plan = RippingPlan(
         season=args.season,
