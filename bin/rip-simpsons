@@ -39,6 +39,9 @@ class RippingPlan:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--device", help="DVD device", required=True)
+    ap.add_argument(
+        "--overwrite", help="overwrite all existing files", action="store_true"
+    )
     ap.add_argument("--season", help="season number", type=int, required=True)
     ap.add_argument(
         "--episode-start",
@@ -49,6 +52,9 @@ def main():
     )
     ap.add_argument(
         "--titles", metavar="N", help="number of titles", type=int, required=False
+    )
+    ap.add_argument(
+        "--skip-titles", metavar="N", help="number of titles to skip", type=int, required=False
     )
     ap.add_argument("--emby-path", help="path to Emby volume", required=True)
     ap.add_argument(
@@ -80,17 +86,22 @@ def main():
     else:
         titles = [idx for idx in range(1, args.titles + 1)]
 
-    ripping_plan = RippingPlan(
-        season=args.season,
-        rippings=[
+    rippings = [
             Ripping(
                 # Title is 1-based
                 episode_number=args.episode_start + (title - 1),
                 title=title,
             )
             for title in titles
-        ],
+        ]
+    if args.skip_titles is not None:
+        rippings = rippings[args.skip_titles:]
+
+    ripping_plan = RippingPlan(
+        season=args.season,
+        rippings=rippings,
     )
+
     print("Ripping plan:\n{}".format(ripping_plan))
     input("Press RETURN to continue. ")
 
@@ -108,7 +119,7 @@ def main():
             SERIES, ripping_plan.season, item.episode_number, SUFFIX
         )
         output_path = path.join(output_dir, filename)
-        if path.exists(output_path):
+        if not args.overwrite and path.exists(output_path):
             response = input(
                 "{} exists.  Type OVERWRITE to overwrite it, or anything else to skip. ".format(
                     output_path
